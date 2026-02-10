@@ -9,15 +9,12 @@ import matplotlib.pyplot as plt
 IMG_SIZE = 224
 CONFIDENCE_THRESHOLD = 0.50
 
-st.set_page_config(
-    page_title="Plant Image Recognition",
-    layout="centered"
-)
+st.set_page_config(page_title="Plant Image Recognition", layout="centered")
 
 # ---------------- STYLE ----------------
 st.markdown("""
 <style>
-.main {
+.stApp {
     background-color: #f5fff7;
 }
 h1 {
@@ -27,85 +24,91 @@ h1 {
 </style>
 """, unsafe_allow_html=True)
 
+st.markdown(
+    "<h1>🌿 Plant Image Recognition System</h1>",
+    unsafe_allow_html=True
+)
+
+st.write("Upload a plant image to get its name, scientific name, benefits and confidence.")
+
 # ---------------- LOAD MODEL ----------------
 @st.cache_resource
 def load_model():
-    return tf.keras.models.load_model("best_model.h5")
+    return tf.keras.models.load_model("plant_model.h5")
 
 model = load_model()
+
+# ---------------- LOAD DATA ----------------
+@st.cache_data
+def load_data():
+    return pd.read_excel("plants_data.xlsx")
+
+plants_df = load_data()
 
 # ---------------- LOAD CLASS NAMES ----------------
 with open("class_names.txt", "r") as f:
     class_names = [line.strip() for line in f.readlines()]
 
-# ---------------- LOAD EXCEL ----------------
-plants_df = pd.read_excel("plants_datas.xlsx")
-
-# ---------------- NORMALIZATION FUNCTION ----------------
+# ---------------- NORMALIZE ----------------
 def normalize_name(name):
-    return name.lower().replace("_", "").replace(" ", "").strip()
+    return name.strip().lower().replace(" ", "_").replace("-", "_")
 
-plants_df["normalized_name"] = plants_df["Plant Name"].apply(normalize_name)
+plants_df["Plant Name"] = plants_df["Plant Name"].apply(normalize_name)
+class_names = [normalize_name(c) for c in class_names]
 
-# ---------------- UI ----------------
-st.title("🌿 Plant Image Recognition System")
-st.write("Upload a plant image to get its name, scientific name and benefits.")
-
+# ---------------- FILE UPLOAD ----------------
 uploaded_file = st.file_uploader(
-    "Upload Plant Image",
+    "📸 Upload Plant Image",
     type=["jpg", "jpeg", "png"]
 )
 
-# ---------------- PREDICTION ----------------
 if uploaded_file is not None:
     image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Uploaded Image", use_column_width=True)
 
+    # Preprocess
     img = image.resize((IMG_SIZE, IMG_SIZE))
     img_array = np.array(img) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
 
+    # Predict
     preds = model.predict(img_array)[0]
 
+    # Top-3 predictions
     top_indices = preds.argsort()[-3:][::-1]
-    top_confidences = preds[top_indices]
-    top_class_names = [class_names[i] for i in top_indices]
+    top_names = [class_names[i] for i in top_indices]
+    top_scores = [preds[i] * 100 for i in top_indices]
 
-    # ---------------- CONFIDENCE CHECK ----------------
-    if top_confidences[0] < CONFIDENCE_THRESHOLD:
-        st.error("❌ Plant not confidently recognized. Please upload a clearer image.")
+    max_confidence = top_scores[0]
+    predicted_class = top_names[0]
+
+    # ---------------- BAR CHART ----------------
+    st.subheader("📊 Prediction Confidence (Top 3)")
+
+    fig, ax = plt.subplots()
+    ax.barh(top_names[::-1], top_scores[::-1])
+    ax.set_xlabel("Confidence (%)")
+    ax.set_xlim(0, 100)
+    st.pyplot(fig)
+
+    # ---------------- CONFIDENCE MESSAGE ----------------
+    if max_confidence < CONFIDENCE_THRESHOLD * 100:
+        st.warning(
+            "⚠️ Low confidence prediction. "
+            "Results may be inaccurate. Try a clearer image."
+        )
     else:
-        main_plant = top_class_names[0]
-        confidence = top_confidences[0]
+        st.success("✅ High confidence prediction")
 
-        normalized_model_name = normalize_name(main_plant)
-        plant_row = plants_df[
-            plants_df["normalized_name"] == normalized_model_name
-        ]
+    # ---------------- PLANT DETAILS ----------------
+    row = plants_df[plants_df["Plant Name"] == predicted_class]
 
-        if not plant_row.empty:
-            scientific_name = plant_row.iloc[0]["Scientific Name"]
-            benefits = plant_row.iloc[0]["Benefits"]
-        else:
-            scientific_name = "Not available"
-            benefits = "Not available"
+    if not row.empty:
+        plant_info = row.iloc[0]
+        st.markdown(f"🌱 **Plant Name:** {predicted_class}")
+        st.markdown(f"🔬 **Scientific Name:** {plant_info['Scientific Name']}")
+        st.markdown(f"💊 **Benefits:** {plant_info['Benefits']}")
+    else:
+        st.warning("Plant details not found in database.")
 
-        # ---------------- RESULT ----------------
-        st.success("✅ Plant Identified Successfully!")
-        st.markdown(f"🌱 **Plant Name:** {main_plant}")
-        st.markdown(f"🔬 **Scientific Name:** {scientific_name}")
-        st.markdown(f"💊 **Benefits:** {benefits}")
-        st.markdown(f"📊 **Confidence:** {confidence * 100:.2f}%")
-
-        # ---------------- TOP-3 BAR CHART ----------------
-        st.subheader("📈 Top 3 Predictions")
-
-        fig, ax = plt.subplots(figsize=(6, 3))
-        ax.barh(top_class_names[::-1], top_confidences[::-1], color="#66bb6a")
-        ax.set_xlim(0, 1)
-        ax.set_xlabel("Confidence")
-
-        for i, v in enumerate(top_confidences[::-1]):
-            ax.text(v + 0.01, i, f"{v*100:.1f}%", va="center")
-
-        st.pyplot(fig)
+    st.markdown(f"📈 **Top Confidence:** {max_confidence:.2f}%")
