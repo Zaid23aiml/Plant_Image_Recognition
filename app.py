@@ -34,14 +34,14 @@ st.write("Upload a plant image to get its name, scientific name, benefits and co
 # ---------------- LOAD MODEL ----------------
 @st.cache_resource
 def load_model():
-    return tf.keras.models.load_model("plant_model.h5")
+    return tf.keras.models.load_model("best_model.h5")
 
 model = load_model()
 
 # ---------------- LOAD DATA ----------------
 @st.cache_data
 def load_data():
-    return pd.read_excel("plants_data.xlsx")
+    return pd.read_excel("plants_datas.xlsx")
 
 plants_df = load_data()
 
