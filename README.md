@@ -66,13 +66,13 @@ pip install -r requirements.txt
 2️⃣ Run the app
 streamlit run app.py
 
-🌐 Live Deployment
+###🌐 Live Deployment
 
 The application is deployed on Streamlit Cloud.
 
 🔗 Live App: https://plantimagerecognition-gvfbdmdryuxdeeocejp3hr.streamlit.app/
 
-Model Performance
+###Model Performance
 
 Training Accuracy: ~97–99%
 
@@ -84,7 +84,7 @@ Uses confidence threshold to avoid false predictions on unseen images
 
 Note: Accuracy may vary for real-world images depending on lighting, angle, and background.
 
-🔮 Future Improvements
+###🔮 Future Improvements
 
 Add more plant species
 
@@ -97,14 +97,14 @@ Deploy as a mobile app
 Multilingual support
 
 
-Author
+###Author
 
 Zaid Ansari
 AI & Machine Learning Enthusiast
 Plant Image Recognition Project
 
 
-Acknowledgements
+###Acknowledgements
 
 TensorFlow & Keras
 
