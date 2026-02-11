@@ -71,7 +71,8 @@ streamlit run app.py
 
 The application is deployed on Streamlit Cloud.
 
-🔗 Live App: https://plantimagerecognition-gvfbdmdryuxdeeocejp3hr.streamlit.app/
+🔗 **Live App:**
+ https://plantimagerecognition-gvfbdmdryuxdeeocejp3hr.streamlit.app/
 
 ---
 
